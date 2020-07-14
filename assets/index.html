@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Todos!</title>
+    <link rel="stylesheet" href="index.css">
+  </head>
+  <body>
+    <h1><b>Список дел</b></h1>
+    <div class="search"><input class="searchStr" type="search" name="searchStr" placeholder="Поиск"></div>
+    <div class="addTodo"><input class="check" type="checkbox"><input class="strTodo" name="strTodo" placeholder="Добавить дело" value=""></div>
+    <div class="list"></div>
+    <div class="footer">
+      <div class="left"><b>Дел осталось:</b></div>
+      <div class="filter" title="Какие задачи отобразить?">
+        <label><input class="radioBut" type="radio" checked name="radioBut" value="all">Все</label>
+        <label><input class="radioBut" type="radio" name="radioBut" value="active">Активные</label>
+        <label><input class="radioBut" type="radio" name="radioBut" value="completed">Завершённые</label>
+      </div>
+      <div class="remove"><input style='visibility: visible' type="button" value="Удалить завершенные"></div>
+    </div>
+
+    <script src="index.js"></script>
+  </body>
+</html>
