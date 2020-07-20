@@ -57,20 +57,18 @@ app.post("/remove-completed", (req, res) => {
     res.send("ok");
 });
 
-app.post("/all-todo-true", (req, res) => {
+app.post("/all-toggle", (req, res) => {
     const data = loadData();
-    data.forEach(item => {
-        item.completed = true;
-    });
-    saveData(data);
-    res.send("ok");
-});
-
-app.post("/all-todo-false", (req, res) => {
-    const data = loadData();
-    data.forEach(item => {
-        item.completed = false;
-    });
+    const check = req.body;
+    if (check.check)  {
+        data.forEach(item => {
+            item.completed = true;
+        });
+    }else {
+        data.forEach(item => {
+            item.completed = false;
+        });
+    }
     saveData(data);
     res.send("ok");
 });
