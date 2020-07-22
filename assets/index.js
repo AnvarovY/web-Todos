@@ -86,9 +86,14 @@ function render(highlight, type) {
     }
     document.querySelector('.list').innerHTML = data
     .map(function(item, index) {
+        let title = _.escape(item.title);
+        let _highlight = _.escapeRegExp(highlight);
         let checked1 = item.completed ? 'checked' : '';
-        let string = `<div class="todo"><div class="box1"><input class="checkbox" id="check${index}" type="checkbox" ${checked1} value="${index}"></div><div class="box2"><label for="check${index}">${(index + 1)} ${item.title.replace(new RegExp(highlight, 'gi'), (match) => `<span style="color: red;">${match}</span>`)}</label></div><div class="box3"><button class="removeBut" value="${index}">❌</button></div></div>`;
-        if (highlight && item.title.toLowerCase().includes(highlight.toLowerCase())) {
+        let string = `<div class="todo"><div class="box1"><input class="checkbox" id="check${index}" type="checkbox" ${checked1} value="${index}"></div>
+        <div class="box2"><label for="check${index}">
+        ${(index + 1)} ${highlight ? title.replace(new RegExp(_highlight, 'gi'), (match) => `<span style="color: red;">${match}</span>`): title}</label></div>
+        <div class="box3"><button class="removeBut" value="${index}">❌</button></div></div>`;
+        if (highlight && title.toLowerCase().includes(highlight.toLowerCase())) {
             return string
         } else if (!highlight) { 
             return string;
