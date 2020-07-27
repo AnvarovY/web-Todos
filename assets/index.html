@@ -6,6 +6,9 @@
     <link rel="stylesheet" href="index.css">
   </head>
   <body>
+    <div class="header"><form action="/logout/" method="POST">
+      Здравствуй {{login}}! <input type="submit" value="Выйти" />
+  </form></div>
     <h1><b>Список дел</b></h1>
     <div class="search"><input class="searchStr" type="search" name="searchStr" placeholder="Поиск"></div>
     <div class="addTodo"><input class="check" type="checkbox"><input class="strTodo" name="strTodo" placeholder="Добавить дело" value=""></div>

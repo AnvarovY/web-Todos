@@ -24,7 +24,7 @@ input {
   margin-bottom: 20px;
   text-align: center;
 }
-.iput:last-child {
+.input:last-child {
   margin: 0;
 }
 
@@ -32,4 +32,8 @@ input {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+}
+
+.input.invalid {
+  color: red;
 }

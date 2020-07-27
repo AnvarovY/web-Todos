@@ -7,7 +7,8 @@
   </head>
   <body>
     <h1><b>Регистрация</b></h1>
-    <form>
+    {{message}}
+    <form action="/registration/" method="POST">
       <div class="input">
         <input class="login" name="login" placeholder="Придумайте login">
       </div>
@@ -15,7 +16,7 @@
         <input class="password" name="password" type="password" placeholder="Пароль">
       </div>
       <div class="input">
-        <input class="password" name="password" type="password" placeholder="Подтвердите пароль">
+        <input class="password-repeat" name="password-repeat" type="password" placeholder="Подтвердите пароль">
       </div>
       <div class="input footer">
         <input type="submit" class="submit" value="Зарегистрироваться"/>
