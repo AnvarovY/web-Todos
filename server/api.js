@@ -1,71 +1,83 @@
 const fs = require("fs");
 const path = require("path");
+ 
 
-module.exports = function (app) {
-    app.get("/get-todos", (req, res) => {
-        const data = loadData(req.session.login);
+/**
+ * @param {import('mongodb').Db} db
+ */
+module.exports = function (app, db) {
+    app.get("/get-todos", async (req, res) => {
+        const data = await loadData(req.session.user._id);
     
         res.setHeader("Content-Type", "application/json");
         res.send(data);
     });
     
-    app.post("/toggle-todo", (req, res) => {
-        const data = loadData(req.session.login);
+    app.post("/toggle-todo", async (req, res) => {
+        const data = await loadData(req.session.user._id);
         const num = req.body.num;
-        if (data[num].completed) {
-            data[num].completed = false;
+
+        if (data.listTodos[num].completed) {
+            data.listTodos[num].completed = false;
         }
         else {
-            data[num].completed = true;
+            data.listTodos[num].completed = true;
         }
-        saveData(req.session.login, data);
+        saveData(req.session.user._id, data.listTodos);
         res.send("ok");
     });
     
-    app.post("/remove-todo", (req, res) => {
-        const data = loadData(req.session.login);
+    app.post("/remove-todo", async (req, res) => {
+        const data = await loadData(req.session.user._id);
         const num = req.body.num;
-        data.splice(num, 1);
-        saveData(req.session.login, data);
+
+        data.listTodos.splice(num, 1);
+        saveData(req.session.user._id, data.listTodos);
         res.send("ok");
     });
     
-    app.post("/add-todo", (req, res) => {
-        const data = loadData(req.session.login);
+    app.post("/add-todo", async (req, res) => {
+        const data = await loadData(req.session.user._id);
         const newtodo = req.body;
-        data.push(newtodo);
-        saveData(req.session.login, data);
+        
+        data.listTodos.push(newtodo);
+        saveData(req.session.user._id, data.listTodos);
         res.send("ok");
     });
     
-    app.post("/remove-completed", (req, res) => {
-        const data = loadData(req.session.login);
-        const newData = data.filter(x => !x.completed);
-        saveData(req.session.login, newData);
+    app.post("/remove-completed", async (req, res) => {
+        const data = await loadData(req.session.user._id);
+        const newData = data.listTodos.filter(x => !x.completed);
+
+        saveData(req.session.user._id, newData);
         res.send("ok");
     });
     
-    app.post("/all-toggle", (req, res) => {
-        const data = loadData(req.session.login);
+    app.post("/all-toggle", async (req, res) => {
+        const data = await loadData(req.session.user._id);
         const check = req.body;
-        if (check.check)  {
-            data.forEach(item => {
-                item.completed = true;
-            });
-        }else {
-            data.forEach(item => {
-                item.completed = false;
-            });
-        }
-        saveData(req.session.login, data);
+
+        data.listTodos.forEach(item => {
+            item.completed = !!check.check;
+        });
+        saveData(req.session.user._id, data.listTodos);
         res.send("ok");
     });
     
-    function loadData(login) {
-        return JSON.parse(fs.readFileSync(path.join(__dirname, `data/${login}.json`)));
+    async function loadData(userId) {
+        const data = db.collection("data");
+        /* или в случае поиска по ObjectId
+        const ObjectId = require('mongodb').ObjectId;
+    
+        const o_id = new ObjectId(userId);
+        или return await data.findOne({ userId: ObjectId(userId) });
+        */
+        return await data.findOne({ userId: userId });
     }
     
-    function saveData(login, data) {
-        fs.writeFileSync(path.join(__dirname, `data/${login}.json`), JSON.stringify(data));
+    async function saveData(userId, userData) {
+        const data = db.collection("data");
+
+        await data.updateOne({ userId: userId }, { $set: {listTodos: userData}});
     }
 };

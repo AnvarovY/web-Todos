@@ -8,25 +8,21 @@ function init() {
         });
     });
 
-    let type;
-    let search;
-
     for (const radio of document.querySelectorAll('.radioBut')) {
         radio.addEventListener('change', () => {
             type = radio.value;
-            render(search, type);
+            render();
         })
     }
 
     document.querySelector('.searchStr')
         .addEventListener('input', (e) => {
             if (e.target.value.length !== 0) {
-                search = e.target.value;
-                render(search, type);
+                render();
             }
             else {
-                search = '';
-                render('', type);                
+                e.target.value = '';
+                render();                
             }
     })
 
@@ -34,7 +30,7 @@ function init() {
         .addEventListener('keypress', (e) => {
             if (e.target.value.length !== 0 && e.key === 'Enter') {
                 const newtodo = {"title" : e.target.value,"completed":false};
-                data.push(newtodo);
+                data.listTodos.push(newtodo);
                 fetch("/add-todo", {
                     method: "POST",
                     headers: {
@@ -43,15 +39,15 @@ function init() {
                     body: JSON.stringify(newtodo),
                 });
                 e.target.value = '';
-                render(search, type);
+                render();
             }
     })
     
     document.querySelector('.remove')
         .addEventListener('click', () => {
-            let newData = data.filter(x => !x.completed);
-            data = newData;
-            render(search, type);
+            let newData = data.listTodos.filter(x => !x.completed);
+            data.listTodos = newData;
+            render();
             fetch("/remove-completed", {
                 method: "POST",
             });
@@ -68,38 +64,44 @@ function init() {
                 body: JSON.stringify({check}),
             });
             if (e.target.checked)  {
-                data.forEach(item => {
+                data.listTodos.forEach(item => {
                     item.completed = true;
                 });
             }else {
-                data.forEach(item => {
+                data.listTodos.forEach(item => {
                     item.completed = false;
                 });
             }
-            render(search, type);
+            render();
         })
 }
 
-function render(highlight, type) {
-    function filtertodo(todo, index, type) {
-        return (type === "all" || !type) || (type === "completed" && data[index].completed) || (type === "active" && !data[index].completed);
-    }
-    document.querySelector('.list').innerHTML = data
-    .map(function(item, index) {
-        let title = _.escape(item.title);
-        let _highlight = _.escapeRegExp(highlight);
-        let checked1 = item.completed ? 'checked' : '';
-        let string = `<div class="todo"><div class="box1"><input class="checkbox" id="check${index}" type="checkbox" ${checked1} value="${index}"></div>
-        <div class="box2"><label for="check${index}">
-        ${(index + 1)} ${highlight ? title.replace(new RegExp(_highlight, 'gi'), (match) => `<span style="color: red;">${match}</span>`): title}</label></div>
-        <div class="box3"><button class="removeBut" value="${index}">❌</button></div></div>`;
-        if (highlight && title.toLowerCase().includes(highlight.toLowerCase())) {
-            return string
-        } else if (!highlight) { 
-            return string;
+function render() {
+    const highlight = document.querySelector('.searchStr').value;
+    const type = document.querySelector('.radioBut:checked').value;
+
+    function filtertodo(todo) {
+        if (todo.title.toLowerCase().includes(highlight.toLowerCase()) || !highlight) {
+            return (type === "all" || !type) || (type === "completed" && todo.completed) || (type === "active" && !todo.completed);
         }
+    }
+
+    document.querySelector('.list').innerHTML = data.listTodos
+    .map((item, index) => ({
+        todo: item,
+        index: index,
+    }))
+    .filter((item) => filtertodo(item.todo))
+    .map(function(item) {
+        const title = _.escape(item.todo.title);
+        const _highlight = _.escapeRegExp(highlight);
+        const checked1 = item.todo.completed ? 'checked' : '';
+        const string = `<div class="todo"><div class="box1"><input class="checkbox" id="check${item.index}" type="checkbox" ${checked1} value="${item.index}"></div>
+        <div class="box2"><label for="check${item.index}">
+        ${(item.index + 1)} ${highlight ? title.replace(new RegExp(_highlight, 'gi'), (match) => `<span style="color: red;">${match}</span>`): title}</label></div>
+        <div class="box3"><button class="removeBut" value="${item.index}">❌</button></div></div>`;
+        return string;
     })
-    .filter((todo, index) => filtertodo(todo, index, type))
     .join('');
 
     const toggleTodo = document.querySelectorAll('.checkbox');
@@ -114,8 +116,8 @@ function render(highlight, type) {
                 },
                 body: JSON.stringify({num}),
             });
-            data[num].completed = !data[num].completed;
-            render(highlight, type);
+            data.listTodos[num].completed = !data.listTodos[num].completed;
+            render();
         });  
     }  
 
@@ -131,23 +133,18 @@ function render(highlight, type) {
                 },
                 body: JSON.stringify({num}),
             });
-            data.splice(num, 1);
-            render(highlight, type);
+            data.listTodos.splice(num, 1);
+            render();
         });  
     }  
 
-    let leftTodo = 0;
-    for (let todo of data) {
-        if (todo.completed) {
-            ++leftTodo;
-        }
-    }
-    document.querySelector('.left').innerHTML = ('<div class="left"><b> Дел осталось: ' + (data.length - leftTodo) + '</b></div>');
+    let leftTodo = data.listTodos.filter(x => x.completed).length;
+    document.querySelector('.left').innerHTML = ('<div class="left"><b> Дел осталось: ' + (data.listTodos.length - leftTodo) + '</b></div>');
 
     document.querySelector('.remove').innerHTML =
         `<div><input class="remove" style="visibility: ${leftTodo === 0 ? 'hidden' : 'visible'}" type="button" value="Удалить завершенные"></div>`;
 
-    document.querySelector('.check').checked = leftTodo === data.length;
+    document.querySelector('.check').checked = leftTodo === data.listTodos.length;
 }
 
 init();

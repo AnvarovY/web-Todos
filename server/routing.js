@@ -1,9 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 
-module.exports = function (app) {
+/**
+ * @param {import('mongodb').Db} db
+ */
+
+module.exports = function (app, db) {
     app.get("/", (req, res) => {
-        if (!req.session.login) {
+        if (!req.session.user) {
             res.redirect("/login/");
             return;
         }
@@ -11,7 +15,7 @@ module.exports = function (app) {
         const html = fs
             .readFileSync(path.join(__dirname, "../assets/index.html"))
             .toString()
-            .replace("{{login}}", req.session.login);
+            .replace("{{login}}", req.session.user.login);
         
         res.setHeader("Content-Type", "text/html");
         res.send(html);
@@ -36,19 +40,15 @@ module.exports = function (app) {
         res.send(html);
     });
 
-    app.post("/login/", (req, res) => {
+    app.post("/login/", async (req, res) => {
         const login = req.body.login;
         const password = req.body.password;
 
-        const users = JSON.parse(
-            fs.readFileSync(path.join(__dirname, "users.json"))
-        );
-        const user = users.find(
-            (x) => x.login === login && x.password === password
-        );
+        const users = db.collection("users");
+        const user = await users.findOne({ login: login, password: password });
 
         if (user) {
-            req.session.login = login;
+            req.session.user = user;
             res.redirect("/");
         } else {
             req.session.invalidLoginPassword = true;
@@ -88,44 +88,41 @@ module.exports = function (app) {
         res.send(html);
     });
 
-    app.post("/registration/", (req, res) => {
+    app.post("/registration/", async (req, res) => {
         const login = req.body.login;
         const password = req.body.password;
         const passwordRepeat = req.body["password-repeat"];
 
-        const users = JSON.parse(
-            fs.readFileSync(path.join(__dirname, "users.json"))
-        );
+        const users = db.collection("users");
+        const user = await users.findOne({ login: login });
 
         if (password !== passwordRepeat) {
             req.session.passwordsMissmatch = true;
             res.redirect("/registration/");
-        } else if (users.some((x) => x.login === login)) {
+        } else if (user) {
             req.session.existingUser = true;
             res.redirect("/registration/");
         } else if (!login || !password) {
             req.session.emptyLoginPassword = true;
             res.redirect("/registration/");
         } else {
-            users.push({ login: login, password: password });
-            fs.writeFileSync(
-                path.join(__dirname, "users.json"),
-                JSON.stringify(users)
-            );
+            const result = await users.insertOne({
+                login: login,
+                password: password,
+            });
+            const user_ = result.ops[0];
 
-            fs.writeFileSync(
-                path.join(__dirname, `data/${login}.json`),
-                JSON.stringify([])
-            );
-
-            req.session.login = login;
+            const data = db.collection("data");
+            await data.insertOne({ listTodos: [], userId: user_._id.toString() }); // toString() для преобразования объекта o_id в строку
+            
+            req.session.user = user_;
 
             res.redirect("/");
         }
     });
 
     app.post("/logout/", (req, res) => {
-        delete req.session.login;
+        delete req.session.user;
         res.redirect("/login/");
     });
 };
