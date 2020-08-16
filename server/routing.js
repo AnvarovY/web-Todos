@@ -111,9 +111,6 @@ module.exports = function (app, db) {
                 password: password,
             });
             const user_ = result.ops[0];
-
-            const data = db.collection("data");
-            await data.insertOne({ listTodos: [], userId: user_._id.toString() }); // toString() для преобразования объекта o_id в строку
             
             req.session.user = user_;
 

@@ -1,6 +1,4 @@
-const fs = require("fs");
-const path = require("path");
- 
+const ObjectId = require('mongodb').ObjectId;
 
 /**
  * @param {import('mongodb').Db} db
@@ -8,7 +6,6 @@ const path = require("path");
 module.exports = function (app, db) {
     app.get("/get-todos", async (req, res) => {
         const data = await loadData(req.session.user._id);
-    
         res.setHeader("Content-Type", "application/json");
         res.send(data);
     });
@@ -17,39 +14,39 @@ module.exports = function (app, db) {
         const data = await loadData(req.session.user._id);
         const num = req.body.num;
 
-        if (data.listTodos[num].completed) {
-            data.listTodos[num].completed = false;
+        if (data[num].todo.completed) {
+            data[num].todo.completed = false;
         }
         else {
-            data.listTodos[num].completed = true;
+            data[num].todo.completed = true;
         }
-        saveData(req.session.user._id, data.listTodos);
+        saveData(req.session.user._id, data[num]._id, data[num].todo);
         res.send("ok");
     });
     
     app.post("/remove-todo", async (req, res) => {
         const data = await loadData(req.session.user._id);
         const num = req.body.num;
-
-        data.listTodos.splice(num, 1);
-        saveData(req.session.user._id, data.listTodos);
+        removeData(req.session.user._id, data[num]._id);
         res.send("ok");
     });
     
     app.post("/add-todo", async (req, res) => {
-        const data = await loadData(req.session.user._id);
+        const data = db.collection("data");
         const newtodo = req.body;
-        
-        data.listTodos.push(newtodo);
-        saveData(req.session.user._id, data.listTodos);
+
+        await data.insertOne({ todo: newtodo, userId: req.session.user._id });
         res.send("ok");
     });
     
     app.post("/remove-completed", async (req, res) => {
         const data = await loadData(req.session.user._id);
-        const newData = data.listTodos.filter(x => !x.completed);
-
-        saveData(req.session.user._id, newData);
+        
+        data.forEach(item => {
+            if (item.todo.completed) {
+                removeData(req.session.user._id, item._id);
+            }
+        });
         res.send("ok");
     });
     
@@ -57,29 +54,28 @@ module.exports = function (app, db) {
         const data = await loadData(req.session.user._id);
         const check = req.body;
 
-        data.listTodos.forEach(item => {
-            item.completed = !!check.check;
+        data.forEach(item => {
+            item.todo.completed = !!check.check;
+            saveData(req.session.user._id, item._id, item.todo);
         });
-        saveData(req.session.user._id, data.listTodos);
         res.send("ok");
     });
     
     async function loadData(userId) {
         const data = db.collection("data");
-        /* или в случае поиска по ObjectId
-        const ObjectId = require('mongodb').ObjectId;
-    
-        const o_id = new ObjectId(userId);
-        return await data.findOne({ userId: o_id });
-        
-        или return await data.findOne({ userId: ObjectId(userId) });
-        */
-        return await data.findOne({ userId: userId });
+
+        return await data.find({userId: userId}).toArray()
     }
     
-    async function saveData(userId, userData) {
+    async function saveData(userId, todoid, userData) {
         const data = db.collection("data");
 
-        await data.updateOne({ userId: userId }, { $set: {listTodos: userData}});
+        await data.updateOne({ userId: userId, _id: ObjectId(todoid) }, { $set: {todo: userData}});
+    }
+
+    async function removeData(userId, todoid) {
+        const data = db.collection("data");
+
+        await data.remove({ userId: userId, _id: ObjectId(todoid) });
     }
 };

@@ -30,7 +30,7 @@ function init() {
         .addEventListener('keypress', (e) => {
             if (e.target.value.length !== 0 && e.key === 'Enter') {
                 const newtodo = {"title" : e.target.value,"completed":false};
-                data.listTodos.push(newtodo);
+                data.push({todo : newtodo});
                 fetch("/add-todo", {
                     method: "POST",
                     headers: {
@@ -45,8 +45,8 @@ function init() {
     
     document.querySelector('.remove')
         .addEventListener('click', () => {
-            let newData = data.listTodos.filter(x => !x.completed);
-            data.listTodos = newData;
+            let newData = data.filter(x => !x.todo.completed);  
+            data = newData;
             render();
             fetch("/remove-completed", {
                 method: "POST",
@@ -64,12 +64,12 @@ function init() {
                 body: JSON.stringify({check}),
             });
             if (e.target.checked)  {
-                data.listTodos.forEach(item => {
-                    item.completed = true;
+                data.forEach(item => {
+                    item.todo.completed = true;
                 });
             }else {
-                data.listTodos.forEach(item => {
-                    item.completed = false;
+                data.forEach(item => {
+                    item.todo.completed = false;
                 });
             }
             render();
@@ -86,16 +86,16 @@ function render() {
         }
     }
 
-    document.querySelector('.list').innerHTML = data.listTodos
+    document.querySelector('.list').innerHTML = data
     .map((item, index) => ({
         todo: item,
         index: index,
     }))
-    .filter((item) => filtertodo(item.todo))
+    .filter((item) => filtertodo(item.todo.todo))
     .map(function(item) {
-        const title = _.escape(item.todo.title);
+        const title = _.escape(item.todo.todo.title);
         const _highlight = _.escapeRegExp(highlight);
-        const checked1 = item.todo.completed ? 'checked' : '';
+        const checked1 = item.todo.todo.completed ? 'checked' : '';
         const string = `<div class="todo"><div class="box1"><input class="checkbox" id="check${item.index}" type="checkbox" ${checked1} value="${item.index}"></div>
         <div class="box2"><label for="check${item.index}">
         ${(item.index + 1)} ${highlight ? title.replace(new RegExp(_highlight, 'gi'), (match) => `<span style="color: red;">${match}</span>`): title}</label></div>
@@ -116,7 +116,7 @@ function render() {
                 },
                 body: JSON.stringify({num}),
             });
-            data.listTodos[num].completed = !data.listTodos[num].completed;
+            data[num].todo.completed = !data[num].todo.completed;
             render();
         });  
     }  
@@ -133,18 +133,18 @@ function render() {
                 },
                 body: JSON.stringify({num}),
             });
-            data.listTodos.splice(num, 1);
+            data.splice(num, 1);
             render();
         });  
     }  
 
-    let leftTodo = data.listTodos.filter(x => x.completed).length;
-    document.querySelector('.left').innerHTML = ('<div class="left"><b> Дел осталось: ' + (data.listTodos.length - leftTodo) + '</b></div>');
+    let leftTodo = data.filter(x => x.todo.completed).length;
+    document.querySelector('.left').innerHTML = ('<div class="left"><b> Дел осталось: ' + (data.length - leftTodo) + '</b></div>');
 
     document.querySelector('.remove').innerHTML =
         `<div><input class="remove" style="visibility: ${leftTodo === 0 ? 'hidden' : 'visible'}" type="button" value="Удалить завершенные"></div>`;
 
-    document.querySelector('.check').checked = leftTodo === data.listTodos.length;
+    document.querySelector('.check').checked = leftTodo === data.length;
 }
 
 init();
