@@ -70,6 +70,8 @@ module.exports = function (app, db) {
         const ObjectId = require('mongodb').ObjectId;
     
         const o_id = new ObjectId(userId);
+        return await data.findOne({ userId: o_id });
+        
         или return await data.findOne({ userId: ObjectId(userId) });
         */
         return await data.findOne({ userId: userId });
