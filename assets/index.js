@@ -29,17 +29,21 @@ function init() {
     document.querySelector('.strTodo')
         .addEventListener('keypress', (e) => {
             if (e.target.value.length !== 0 && e.key === 'Enter') {
-                const newtodo = {"title" : e.target.value,"completed":false};
-                data.push({todo : newtodo});
+                const addtodo = {"title" : e.target.value,"completed":false};
+                
                 fetch("/add-todo", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json;charset=utf-8",
                     },
-                    body: JSON.stringify(newtodo),
+                    body: JSON.stringify(addtodo),
+                }).then((res) => {
+                    res.json().then((newTodo) => {
+                        data.push(newTodo);
+                        render();
+                    });
                 });
                 e.target.value = '';
-                render();
             }
     })
     
@@ -109,14 +113,16 @@ function render() {
     for (let checkbutton of toggleTodo) {
         checkbutton.addEventListener('change', () => {
             const num =  parseInt(checkbutton.value, 10);
+
+            data[num].todo.completed = !data[num].todo.completed;
+
             fetch("/toggle-todo", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json;charset=utf-8",
                 },
-                body: JSON.stringify({num}),
+                body: JSON.stringify({todoid : data[num]._id, status : data[num].todo.completed}),
             });
-            data[num].todo.completed = !data[num].todo.completed;
             render();
         });  
     }  
@@ -131,7 +137,7 @@ function render() {
                 headers: {
                     "Content-Type": "application/json;charset=utf-8",
                 },
-                body: JSON.stringify({num}),
+                body: JSON.stringify({todoid : data[num]._id}),
             });
             data.splice(num, 1);
             render();

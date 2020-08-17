@@ -6,28 +6,23 @@ const ObjectId = require('mongodb').ObjectId;
 module.exports = function (app, db) {
     app.get("/get-todos", async (req, res) => {
         const data = await loadData(req.session.user._id);
+        
         res.setHeader("Content-Type", "application/json");
         res.send(data);
     });
     
-    app.post("/toggle-todo", async (req, res) => {
-        const data = await loadData(req.session.user._id);
-        const num = req.body.num;
-
-        if (data[num].todo.completed) {
-            data[num].todo.completed = false;
-        }
-        else {
-            data[num].todo.completed = true;
-        }
-        saveData(req.session.user._id, data[num]._id, data[num].todo);
+    app.post("/toggle-todo", (req, res) => {
+        const todoid = req.body.todoid;
+        const status = req.body.status;
+        
+        saveData(req.session.user._id, todoid, status);
         res.send("ok");
     });
     
-    app.post("/remove-todo", async (req, res) => {
-        const data = await loadData(req.session.user._id);
-        const num = req.body.num;
-        removeData(req.session.user._id, data[num]._id);
+    app.post("/remove-todo", (req, res) => {
+        const todoid = req.body.todoid;
+
+        removeData(req.session.user._id, todoid);
         res.send("ok");
     });
     
@@ -35,8 +30,9 @@ module.exports = function (app, db) {
         const data = db.collection("data");
         const newtodo = req.body;
 
-        await data.insertOne({ todo: newtodo, userId: req.session.user._id });
-        res.send("ok");
+        const result = await data.insertOne({ todo: newtodo, userId: req.session.user._id });
+        res.setHeader("Content-Type", "application/json");
+        res.send(result.ops[0]);
     });
     
     app.post("/remove-completed", async (req, res) => {
@@ -56,7 +52,7 @@ module.exports = function (app, db) {
 
         data.forEach(item => {
             item.todo.completed = !!check.check;
-            saveData(req.session.user._id, item._id, item.todo);
+            saveData(req.session.user._id, item._id, item.todo.completed);
         });
         res.send("ok");
     });
@@ -67,10 +63,10 @@ module.exports = function (app, db) {
         return await data.find({userId: userId}).toArray()
     }
     
-    async function saveData(userId, todoid, userData) {
+    async function saveData(userId, todoid, status) {
         const data = db.collection("data");
 
-        await data.updateOne({ userId: userId, _id: ObjectId(todoid) }, { $set: {todo: userData}});
+        await data.updateOne({ userId: userId, _id: ObjectId(todoid) }, { $set: {'todo.completed' : status}});
     }
 
     async function removeData(userId, todoid) {
